@@ -170,3 +170,68 @@
 # plt.title('Comparison of Numerical Methods and Refined Solutions')
 # plt.grid(True)
 # plt.show()
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+
+def f(t, y):
+    return -1 / 3 * y * np.sqrt(t) + 2 / 3 * y ** 2 * np.sin(t)
+
+
+def modified_euler(f, t0, y0, T, epsilon):
+    h = 0.1  # начальный шаг
+    t = [t0]
+    y = [y0]
+
+    while t[-1] < T:
+        y_star = y[-1] + h * f(t[-1], y[-1])
+        y_new = y[-1] + h / 2 * (f(t[-1], y[-1]) + f(t[-1] + h, y_star))
+
+        # Оценка локальной погрешности
+        y_star_half = y[-1] + (h / 2) * f(t[-1], y[-1])
+        y_new_half = y_star_half + (h / 2) * f(t[-1] + h / 2, y_star_half)
+        local_error = np.abs(y_new_half - y_new)
+
+        if local_error > epsilon:
+            h = h / 2
+        else:
+            t.append(t[-1] + h)
+            y.append(y_new)
+            if local_error < epsilon / 10:
+                h = h * 2
+
+        if t[-1] + h > T:
+            h = T - t[-1]
+
+    return np.array(t), np.array(y), h
+
+
+# Заданные параметры
+t0 = 2
+T = 10
+y0 = 2.2
+epsilon = 1e-4
+
+t, y, final_h = modified_euler(f, t0, y0, T, epsilon)
+
+# Сохранение результатов в файл
+np.savetxt('solution.txt', np.column_stack((t, y)), header='t y', comments='')
+
+# Вывод значений в 21 фиксированной точке
+fixed_points = np.linspace(t0, T, 21)
+y_fixed = np.interp(fixed_points, t, y)
+
+print("Fixed points solution:")
+for t_val, y_val in zip(fixed_points, y_fixed):
+    print(f"t = {t_val:.2f}, y = {y_val:.5f}")
+
+# Построение графика
+plt.plot(t, y, label='Numerical Solution')
+plt.scatter(fixed_points, y_fixed, color='red', label='Fixed Points')
+plt.xlabel('t')
+plt.ylabel('y(t)')
+plt.title('Solution of the ODE')
+plt.legend()
+plt.grid(True)
+plt.show()
